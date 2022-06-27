@@ -3,8 +3,8 @@ name: Docker Image CI
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    schedule:
+    - cron: "23 13 3 * *"
 
 jobs:
 
@@ -14,8 +14,14 @@ jobs:
     env:
       DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
-
     steps:
+    - 
+      name: Docker Image Update Checker
+      id: baseupdatecheck
+      uses: lucacome/docker-image-update-checker@v1
+      with:
+        base-image: library/golang:1.13-alpine
+        image: simeononsecurity/chirpstack-packet-multiplexer:latest
     -
         name: Checkout
         uses: actions/checkout@v3
@@ -44,3 +50,4 @@ jobs:
           context: .
           push: true
           tags: simeononsecurity/chirpstack-packet-multiplexer:latest
+        if: steps.check.outputs.needs-updating == 'true'
