@@ -1,5 +1,9 @@
 FROM golang:1.13-alpine AS development
 
+LABEL org.opencontainers.image.source="https://github.com/simeononsecurity/chirpstack-packet-multiplexer"
+LABEL org.opencontainers.image.description="Forward Semtech packet-forwarder data to multiple servers."
+LABEL org.opencontainers.image.authors="simeononsecurity"
+
 ENV PROJECT_PATH=/chirpstack-packet-multiplexer
 ENV PATH=$PATH:$PROJECT_PATH/build
 ENV CGO_ENABLED=0
@@ -20,3 +24,5 @@ WORKDIR /root/
 RUN apk --no-cache add tzdata
 COPY --from=development /chirpstack-packet-multiplexer/build .
 ENTRYPOINT ["./chirpstack-packet-multiplexer"]
+
+
