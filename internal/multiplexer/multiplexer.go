@@ -317,28 +317,28 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	// Update the randomized RSSI value in the JSON payload
 	jsonData["rssi"] = int(rssi) // Convert back to signed integer
 
-	// Extract LSNR value from JSON payload
+	// Extract lsnr value from JSON payload
 	lsnr, ok := jsonData["lsnr"].(float64)
 	if !ok {
-		return errors.New("failed to extract LSNR from JSON payload")
+		return errors.New("failed to extract lsnr from JSON payload")
 	}
 
-	// Randomize LSNR value within the specified range
-	meanLSNR := lsnr
-	standardDeviationLSNR := 0.5
-	originalLSNR := lsnr
+	// Randomize lsnr value within the specified range
+	meanlsnr := lsnr
+	standardDeviationlsnr := 0.5
+	originallsnr := lsnr
 	minSNR := -23
 	maxSNR := 2
 	lsnr = float64(rand.Intn(maxSNR-minSNR+1) + minSNR)
 
-	// Log the original and randomized LSNR values
+	// Log the original and randomized lsnr values
 	log.WithFields(log.Fields{
 		"gateway_id": gatewayID,
-		"original_lsnr": originalLSNR,
+		"original_lsnr": originallsnr,
 		"randomized_lsnr": lsnr,
-		"mean_lsnr": meanLSNR,
-		"std_deviation_lsnr": standardDeviationLSNR,
-	}).Info("LSNR randomization")
+		"mean_lsnr": meanlsnr,
+		"std_deviation_lsnr": standardDeviationlsnr,
+	}).Info("lsnr randomization")
 
 	if lsnr < float64(minSNR) {
 		lsnr = float64(minSNR)
@@ -346,7 +346,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		lsnr = float64(maxSNR)
 	}	
 
-	// Update the randomized LSNR value in the JSON payload
+	// Update the randomized lsnr value in the JSON payload
 	jsonData["lsnr"] = lsnr
 
 	// Encode the modified JSON payload
