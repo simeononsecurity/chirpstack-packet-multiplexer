@@ -267,8 +267,25 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		return errors.Wrap(err, "failed to decode JSON payload")
 	}
 
+	// Check if "rssi" or "lsnr" key does not exist in jsonData
+	if _, ok := jsonData["rxpk"]; !ok {
+		// respond with PushACK
+		log.WithFields(log.Fields{
+			"addr":        up.addr,
+			"packet_type": PushACK,
+			"gateway_id":  gatewayID,
+		}).Info("sending packet to gateway")
+		b := make([]byte, 4)
+		copy(b[:3], up.data[:3])
+		b[3] = byte(PushACK)
+		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
+			return errors.Wrap(err, "write to udp error")
+		}
+		return m.forwardUplinkPacket(gatewayID, up)
+	}
+
 	// Log the fields
-	log.WithFields(jsonData).Info("jsonData")
+	log.WithFields(jsonData[rxpk]).Info("jsonData")
 
 	// Extract RSSI value from JSON payload
 	rssi, ok := jsonData["rssi"].(float64)
