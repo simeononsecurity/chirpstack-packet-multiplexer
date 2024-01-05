@@ -287,10 +287,41 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	// Log the fields
 	log.WithFields(jsonData).Info("jsonData")
 
-	// Extract RSSI value from JSON payload
-	rssi, ok := jsonData["rssi"].(float64)
+	// Check if "rxpk" key exists in jsonData
+	rxpkSlice, ok := jsonData["rxpk"].([]interface{})
+	if !ok || len(rxpkSlice) == 0 {
+		// "rxpk" key is missing or the value is not a slice or the slice is empty
+		// Handle the error accordingly
+		return errors.New("missing or invalid rxpk data")
+	}
+
+	// Extract rssi, rssis, lsnr, and size values from the first map in rxpkSlice
+	rxpkMap, ok := rxpkSlice[0].(map[string]interface{})
 	if !ok {
-		return errors.New("failed to extract RSSI from JSON payload")
+		// The first element in the slice is not a map
+		return errors.New("invalid rxpk data format")
+	}
+
+	rssi, ok := rxpkMap["rssi"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract rssi from rxpk map")
+	}
+	
+	rssis, ok := rxpkMap["rssis"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract rssis from rxpk map")
+	}
+
+	lsnr, ok := rxpkMap["lsnr"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract lsnr from rxpk map")
+		// Handle the error accordingly
+	}
+
+	size, ok := rxpkMap["size"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract size from rxpk map")
+		// Handle the error accordingly
 	}
 
 	// Randomize RSSI value within the specified range
@@ -316,12 +347,6 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 
 	// Update the randomized RSSI value in the JSON payload
 	jsonData["rssi"] = int(rssi) // Convert back to signed integer
-
-	// Extract lsnr value from JSON payload
-	lsnr, ok := jsonData["lsnr"].(float64)
-	if !ok {
-		return errors.New("failed to extract lsnr from JSON payload")
-	}
 
 	// Randomize lsnr value within the specified range
 	meanlsnr := lsnr
