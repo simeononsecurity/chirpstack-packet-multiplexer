@@ -104,25 +104,43 @@ bind="0.0.0.0:1700"
 # packet-forwarder UDP data.
 #
 # Example:
-# [[packet_multiplexer.backend]]
-# # Host
-# #
-# # The host:IP of the backend.
-# host="192.16.1.5:1700"
+[[packet_multiplexer.backend]]
+# Host
 #
-# # Uplink only
+# The host:IP of the backend.
+host="192.16.1.5:1700"
+
+# Uplink only
 #
-# # This backend is for uplink only. It is not able to send data
-# # back to the gateways.
-# uplink_only=false
+# This backend is for uplink only. It is not able to send data
+# back to the gateways.
+uplink_only=false
+
+# Gateway IDs
 #
-# # Gateway IDs
-# #
-# # The Gateway IDs to forward data for.
-# gateway_ids = [
-#   "0101010101010101",
-#   "0202020202020202",
-# ]
+# The Gateway IDs to forward data for.
+gateway_ids = [
+  "0101010101010101",
+  "0202020202020202",
+]
+
+# Whitelist
+#
+# If true, only specified Gateway IDs are allowed. If false, all Gateway IDs are allowed.
+whitelist = true
+
+# Blacklist
+#
+# If true, specified Gateway IDs are blocked. If false, no Gateway IDs are blocked.
+blacklist = false
+
+# Blocked IDs
+#
+# The Gateway IDs to be blocked if the blacklist option is enabled.
+blocked_ids = [
+  "0303030303030303",
+  "0404040404040404",
+]
 ```
 
 ## Example docker compose setup
