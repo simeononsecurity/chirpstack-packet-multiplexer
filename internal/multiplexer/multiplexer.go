@@ -255,8 +255,6 @@ func (m *Multiplexer) handleDownlinkPacket(backend, gatewayID string, up udpPack
 	return nil
 }
 
-// ...
-
 func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
     if len(up.data) < 12 {
         return errors.New("expected at least 12 bytes of data")
@@ -303,9 +301,9 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
     meanLSNR := lsnr
     standardDeviationLSNR := 0.5
     originalLSNR := lsnr
-    minSNR := 2
-    maxSNR := -23
-    lsnr += float64(rand.NormFloat64()*standardDeviationLSNR + meanLSNR)
+    minSNR := -23
+    maxSNR := 2
+    lsnr = math.Min(maxSNR, math.Max(minSNR, lsnr+float64(rand.NormFloat64()*standardDeviationLSNR)))
 
     // Log the original and randomized LSNR values
     log.WithFields(log.Fields{
