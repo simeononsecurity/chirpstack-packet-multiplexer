@@ -318,11 +318,28 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		// Handle the error accordingly
 	}
 
-	// size, ok := rxpkMap["size"].(float64)
-	// if !ok {
-	// 	log.Errorf("Failed to extract size from rxpk map")
-	// 	// Handle the error accordingly
-	// }
+	size, ok := rxpkMap["size"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract size from rxpk map")
+		// Handle the error accordingly
+	}
+
+	// If not a POC Beacon, Do Not Manipulate
+	if size != 52 && size != 21 {
+		// respond with PushACK
+		log.WithFields(log.Fields{
+			"addr":        up.addr,
+			"packet_type": PushACK,
+			"gateway_id":  gatewayID,
+		}).Info("sending packet to gateway")
+		b := make([]byte, 4)
+		copy(b[:3], up.data[:3])
+		b[3] = byte(PushACK)
+		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
+			return errors.Wrap(err, "write to udp error")
+		}
+		return m.forwardUplinkPacket(gatewayID, up)
+	}	
 
 	// Randomize RSSI value within the specified range
 	minRSSI := -120
