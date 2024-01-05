@@ -285,7 +285,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	}
 
 	// Log the fields
-	log.WithFields(jsonData[rxpk]).Info("jsonData")
+	log.WithFields(jsonData["rxpk"]).Info("jsonData")
 
 	// Extract RSSI value from JSON payload
 	rssi, ok := jsonData["rssi"].(float64)
