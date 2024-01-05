@@ -285,7 +285,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	}
 
 	// Log the fields
-	log.WithFields(jsonData["rxpk"]).Info("jsonData")
+	log.WithFields(jsonData).Info("jsonData")
 
 	// Extract RSSI value from JSON payload
 	rssi, ok := jsonData["rssi"].(float64)
@@ -368,6 +368,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
 		return errors.Wrap(err, "write to udp error")
 	}
+
+	log.WithFields(jsonData).Info("manipulated jsonData")
 
 	// Forward the modified uplink packet
 	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload})
