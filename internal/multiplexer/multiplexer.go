@@ -315,8 +315,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	}).Info("LSNR randomization")
 
 	// Clip after randomization to ensure the result is still valid
-	rssi = math.Min(float64(m.maxRSSI), math.Max(float64(m.minRSSI), rssi))
-	lsnr = math.Min(float64(m.maxSNR), math.Max(float64(m.minSNR), lsnr))
+	rssi = math.Min(int(maxRSSI), math.Max(int(minRSSI), rssi))
+	lsnr = math.Min(int(maxSNR), math.Max(int(minSNR), lsnr))
 
 	// Update the randomized LSNR value in the JSON payload
 	jsonData["lsnr"] = lsnr
