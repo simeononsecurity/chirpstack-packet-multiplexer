@@ -307,10 +307,10 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		log.Errorf("Failed to extract rssi from rxpk map")
 	}
 	
-	// rssis, ok := rxpkMap["rssis"].(float64)
-	// if !ok {
-	// 	log.Errorf("Failed to extract rssis from rxpk map")
-	// }
+	rssis, ok := rxpkMap["rssis"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract rssis from rxpk map")
+	}
 
 	lsnr, ok := rxpkMap["lsnr"].(float64)
 	if !ok {
@@ -337,7 +337,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"randomized_rssi": rssi,
 		"min_rssi": minRSSI,
 		"max_rssi": maxRSSI,
-	}).Info("RSSI randomization")
+	}).debug("RSSI randomization")
 
 	if rssi < float64(minRSSI) {
 		rssi = float64(minRSSI)
@@ -347,6 +347,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 
 	// Update the randomized RSSI value in the first map of rxpkSlice
 	rxpkMap["rssi"] = int(rssi)
+	rxpkMap["rssis"] = int(rssi)
 
 	// Randomize lsnr value within the specified range
 	meanlsnr := lsnr
@@ -363,7 +364,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"randomized_lsnr": lsnr,
 		"mean_lsnr": meanlsnr,
 		"std_deviation_lsnr": standardDeviationlsnr,
-	}).Info("lsnr randomization")
+	}).debug("lsnr randomization")
 
 	if lsnr < float64(minSNR) {
 		lsnr = float64(minSNR)
@@ -371,7 +372,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		lsnr = float64(maxSNR)
 	}	
 
-	// Update the randomized LSNR value in the first map of rxpkSlice
+	// Update the randomized lsnr value in the first map of rxpkSlice
 	rxpkMap["lsnr"] = lsnr
 
 	// Encode the modified JSON payload
