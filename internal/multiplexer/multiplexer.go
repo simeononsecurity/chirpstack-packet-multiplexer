@@ -56,6 +56,11 @@ func New(c Config) (*Multiplexer, error) {
 		for _, gatewayID := range backend.GatewayIDs {
 			gatewayID = strings.ToLower(gatewayID)
 
+		    	// Check the Blacklist flag and block gatewayID if true
+			if m.config.Blacklist && m.isGatewayIDBlocked(gatewayID) {
+				continue
+			}
+
 			log.WithFields(log.Fields{
 				"gateway_id":  gatewayID,
 				"host":        backend.Host,
@@ -220,7 +225,9 @@ func (m *Multiplexer) handleUplinkPacket(up udpPacket) error {
 
 	switch pt {
 	case PushData:
-		return m.handlePushData(gatewayID, up)
+		if !m.config.Blacklist || !m.isGatewayIDBlocked(gatewayID) {
+            		return m.handlePushData(gatewayID, up)
+        	}
 	case PullData:
 		if err := m.setGateway(gatewayID, up.addr); err != nil {
 			return errors.Wrap(err, "set gateway error")
@@ -247,7 +254,9 @@ func (m *Multiplexer) handleDownlinkPacket(backend, gatewayID string, up udpPack
 
 	switch pt {
 	case PullResp:
-		return m.forwardPullResp(backend, gatewayID, up)
+		if !m.config.Blacklist || !m.isGatewayIDBlocked(gatewayID) {
+            		return m.forwardPullResp(backend, gatewayID, up)
+        	}
 	}
 
 	return nil
