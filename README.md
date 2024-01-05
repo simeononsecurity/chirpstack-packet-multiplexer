@@ -173,3 +173,5 @@ See the [Rename Announcement](https://www.chirpstack.io/r/rename-announcement) f
 ### v3.0.0
 
 * Initial release (part of LoRa Server v3 repository).
+
+
