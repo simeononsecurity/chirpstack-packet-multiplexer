@@ -307,10 +307,10 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		log.Errorf("Failed to extract rssi from rxpk map")
 	}
 	
-	rssis, ok := rxpkMap["rssis"].(float64)
-	if !ok {
-		log.Errorf("Failed to extract rssis from rxpk map")
-	}
+	// rssis, ok := rxpkMap["rssis"].(float64)
+	// if !ok {
+	// 	log.Errorf("Failed to extract rssis from rxpk map")
+	// }
 
 	lsnr, ok := rxpkMap["lsnr"].(float64)
 	if !ok {
