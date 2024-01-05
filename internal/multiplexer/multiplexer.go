@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"math"
 	"math/rand"
-	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -290,6 +289,12 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"max_rssi": maxRSSI,
 	}).Info("RSSI randomization")
 
+	if rssi < float64(minRSSI) {
+		rssi = float64(minRSSI)
+	} else if rssi > float64(maxRSSI) {
+		rssi = float64(maxRSSI)
+	}
+
 	// Update the randomized RSSI value in the JSON payload
 	jsonData["rssi"] = int(rssi) // Convert back to signed integer
 
@@ -316,9 +321,11 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"std_deviation_lsnr": standardDeviationLSNR,
 	}).Info("LSNR randomization")
 
-	// Clip after randomization to ensure the result is still valid
-	rssi = int(math.Min(float64(maxRSSI), math.Max(float64(minRSSI), float64(rssi))))
-	lsnr = int(math.Min(float64(maxSNR), math.Max(float64(minSNR), float64(lsnr))))
+	if lsnr < float64(minSNR) {
+		lsnr = float64(minSNR)
+	} else if lsnr > float64(maxSNR) {
+		lsnr = float64(maxSNR)
+	}	
 
 	// Update the randomized LSNR value in the JSON payload
 	jsonData["lsnr"] = lsnr
