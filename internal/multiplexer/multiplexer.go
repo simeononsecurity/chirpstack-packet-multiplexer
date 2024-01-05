@@ -285,7 +285,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	}
 
 	// Log the fields
-	log.WithFields(jsonData).Info("jsonData")
+	log.WithFields(jsonData).Debug("jsonData")
 
 	// Check if "rxpk" key exists in jsonData
 	rxpkSlice, ok := jsonData["rxpk"].([]interface{})
