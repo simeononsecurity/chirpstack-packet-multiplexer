@@ -368,3 +368,13 @@ func (m *Multiplexer) backendIsUplinkOnly(backend string) bool {
 
 	return true
 }
+
+// isGatewayIDBlocked checks if a given gateway ID is in the list of blocked IDs.
+func (m *Multiplexer) isGatewayIDBlocked(gatewayID string) bool {
+    for _, blockedID := range m.config.BlockedIDs {
+        if strings.ToLower(blockedID) == strings.ToLower(gatewayID) {
+            return true
+        }
+    }
+    return false
+}
