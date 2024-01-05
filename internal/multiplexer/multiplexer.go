@@ -267,13 +267,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		return errors.Wrap(err, "failed to decode JSON payload")
 	}
 
-	// Iterate over keys in jsonData
-	for key, value := range jsonData {
-		logFields[key] = value
-	}
-
 	// Log the fields
-	log.WithFields(logFields).Info("jsonData")
+	log.WithFields(jsonData).Info("jsonData")
 
 	// Extract RSSI value from JSON payload
 	rssi, ok := jsonData["rssi"].(float64)
