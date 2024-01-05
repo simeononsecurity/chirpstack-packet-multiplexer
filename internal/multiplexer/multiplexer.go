@@ -354,7 +354,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"randomized_rssi": rssi,
 		"min_rssi": minRSSI,
 		"max_rssi": maxRSSI,
-	}).debug("RSSI randomization")
+	}).Debug("RSSI randomization")
 
 	if rssi < float64(minRSSI) {
 		rssi = float64(minRSSI)
@@ -381,7 +381,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		"randomized_lsnr": lsnr,
 		"mean_lsnr": meanlsnr,
 		"std_deviation_lsnr": standardDeviationlsnr,
-	}).debug("lsnr randomization")
+	}).Debug("lsnr randomization")
 
 	if lsnr < float64(minSNR) {
 		lsnr = float64(minSNR)
@@ -412,7 +412,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		return errors.Wrap(err, "write to udp error")
 	}
 
-	log.WithFields(jsonData).Info("manipulated jsonData")
+	log.WithFields(jsonData).Info("manipulated jsonData for PoC Beacon")
 
 	// Forward the modified uplink packet
 	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload})
