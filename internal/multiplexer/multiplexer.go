@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 	"encoding/json"
-	"math"
 	"math/rand"
 
 	"github.com/pkg/errors"
