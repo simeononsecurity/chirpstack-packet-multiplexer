@@ -310,7 +310,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	originalLSNR := lsnr
 	minSNR := -23
 	maxSNR := 2
-	lsnr = math.Min(maxSNR, math.Max(minSNR, lsnr+float64(rand.NormFloat64()*standardDeviationLSNR)))
+	lsnr = float64(rand.Intn(maxSNR-minSNR+1) + minSNR)
 
 	// Log the original and randomized LSNR values
 	log.WithFields(log.Fields{
