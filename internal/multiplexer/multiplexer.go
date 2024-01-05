@@ -5,6 +5,8 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"math"
+	"math/rand"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -253,25 +255,96 @@ func (m *Multiplexer) handleDownlinkPacket(backend, gatewayID string, up udpPack
 	return nil
 }
 
+// ...
+
 func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
-	if len(up.data) < 12 {
-		return errors.New("expected at least 12 bytes of data")
-	}
+    if len(up.data) < 12 {
+        return errors.New("expected at least 12 bytes of data")
+    }
 
-	// respond with PushACK
-	log.WithFields(log.Fields{
-		"addr":        up.addr,
-		"packet_type": PushACK,
-		"gateway_id":  gatewayID,
-	}).Info("sending packet to gateway")
-	b := make([]byte, 4)
-	copy(b[:3], up.data[:3])
-	b[3] = byte(PushACK)
-	if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
-		return errors.Wrap(err, "write to udp error")
-	}
+    // Decode JSON payload
+    var jsonData map[string]interface{}
+    err := json.Unmarshal(up.data[12:], &jsonData)
+    if err != nil {
+        return errors.Wrap(err, "failed to decode JSON payload")
+    }
 
-	return m.forwardUplinkPacket(gatewayID, up)
+    // Extract RSSI value from JSON payload
+    rssi, ok := jsonData["rssi"].(float64)
+    if !ok {
+        return errors.New("failed to extract RSSI from JSON payload")
+    }
+
+    // Randomize RSSI value within the specified range
+    minRSSI := -120
+    maxRSSI := -90
+    originalRSSI := rssi
+    rssi = float64(rand.Intn(maxRSSI-minRSSI+1) + minRSSI)
+
+    // Log the original and randomized RSSI values
+    log.WithFields(log.Fields{
+        "gateway_id":       gatewayID,
+        "original_rssi":    originalRSSI,
+        "randomized_rssi":  rssi,
+        "min_rssi":         minRSSI,
+        "max_rssi":         maxRSSI,
+    }).Info("RSSI randomization")
+
+    // Update the randomized RSSI value in the JSON payload
+    jsonData["rssi"] = int(rssi) // Convert back to signed integer
+
+    // Extract LSNR value from JSON payload
+    lsnr, ok := jsonData["lsnr"].(float64)
+    if !ok {
+        return errors.New("failed to extract LSNR from JSON payload")
+    }
+
+    // Randomize LSNR value within the specified range
+    meanLSNR := lsnr
+    standardDeviationLSNR := 0.5
+    originalLSNR := lsnr
+    minSNR := 2
+    maxSNR := -23
+    lsnr += float64(rand.NormFloat64()*standardDeviationLSNR + meanLSNR)
+
+    // Log the original and randomized LSNR values
+    log.WithFields(log.Fields{
+        "gateway_id":          gatewayID,
+        "original_lsnr":       originalLSNR,
+        "randomized_lsnr":     lsnr,
+        "mean_lsnr":           meanLSNR,
+        "std_deviation_lsnr":  standardDeviationLSNR,
+    }).Info("LSNR randomization")
+
+    // Clip after randomization to ensure the result is still valid
+    rssi = math.Min(float64(m.maxRSSI), math.Max(float64(m.minRSSI), rssi))
+    lsnr = math.Min(float64(m.maxSNR), math.Max(float64(m.minSNR), lsnr))
+
+    // Update the randomized LSNR value in the JSON payload
+    jsonData["lsnr"] = lsnr
+
+    // Encode the modified JSON payload
+    modifiedPayload, err := json.Marshal(jsonData)
+    if err != nil {
+        return errors.Wrap(err, "failed to encode modified JSON payload")
+    }
+
+    // Respond with PushACK
+    log.WithFields(log.Fields{
+        "addr":        up.addr,
+        "packet_type": PushACK,
+        "gateway_id":  gatewayID,
+    }).Info("sending packet to gateway")
+
+    b := make([]byte, 4)
+    copy(b[:3], up.data[:3])
+    b[3] = byte(PushACK)
+    if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
+        return errors.Wrap(err, "write to udp error")
+    }
+
+    // Forward the modified uplink packet
+    return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload})
 }
 
 func (m *Multiplexer) handlePullData(gatewayID string, up udpPacket) error {
