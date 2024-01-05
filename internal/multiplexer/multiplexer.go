@@ -307,10 +307,10 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		log.Errorf("Failed to extract rssi from rxpk map")
 	}
 	
-	rssis, ok := rxpkMap["rssis"].(float64)
-	if !ok {
-		log.Errorf("Failed to extract rssis from rxpk map")
-	}
+	// rssis, ok := rxpkMap["rssis"].(float64)
+	// if !ok {
+	// 	log.Errorf("Failed to extract rssis from rxpk map")
+	// }
 
 	lsnr, ok := rxpkMap["lsnr"].(float64)
 	if !ok {
@@ -318,11 +318,11 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		// Handle the error accordingly
 	}
 
-	size, ok := rxpkMap["size"].(float64)
-	if !ok {
-		log.Errorf("Failed to extract size from rxpk map")
-		// Handle the error accordingly
-	}
+	// size, ok := rxpkMap["size"].(float64)
+	// if !ok {
+	// 	log.Errorf("Failed to extract size from rxpk map")
+	// 	// Handle the error accordingly
+	// }
 
 	// Randomize RSSI value within the specified range
 	minRSSI := -120
