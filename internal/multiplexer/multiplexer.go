@@ -345,8 +345,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		rssi = float64(maxRSSI)
 	}
 
-	// Update the randomized RSSI value in the JSON payload
-	jsonData["rssi"] = int(rssi) // Convert back to signed integer
+	// Update the randomized RSSI value in the first map of rxpkSlice
+	rxpkMap["rssi"] = int(rssi)
 
 	// Randomize lsnr value within the specified range
 	meanlsnr := lsnr
@@ -371,8 +371,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		lsnr = float64(maxSNR)
 	}	
 
-	// Update the randomized lsnr value in the JSON payload
-	jsonData["lsnr"] = lsnr
+	// Update the randomized LSNR value in the first map of rxpkSlice
+	rxpkMap["lsnr"] = lsnr
 
 	// Encode the modified JSON payload
 	modifiedPayload, err := json.Marshal(jsonData)
