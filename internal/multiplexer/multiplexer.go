@@ -277,7 +277,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	minRSSI := -120
 	maxRSSI := -90
 	originalRSSI := rssi
-	rssi = float64(rand.Intn(maxRSSI-minRSSI+1) + minRSSI)
+	rssi = int(rand.Intn(maxRSSI-minRSSI+1) + minRSSI)
 
 	// Log the original and randomized RSSI values
 	log.WithFields(log.Fields{
@@ -292,7 +292,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	jsonData["rssi"] = int(rssi) // Convert back to signed integer
 
 	// Extract LSNR value from JSON payload
-	lsnr, ok := jsonData["lsnr"].(float64)
+	lsnr, ok := jsonData["lsnr"]
 	if !ok {
 		return errors.New("failed to extract LSNR from JSON payload")
 	}
@@ -303,7 +303,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	originalLSNR := lsnr
 	minSNR := -23
 	maxSNR := 2
-	lsnr = math.Min(maxSNR, math.Max(minSNR, lsnr+float64(rand.NormFloat64()*standardDeviationLSNR)))
+	lsnr = int(math.Min(maxSNR, math.Max(minSNR, lsnr+float64(rand.NormFloat64()*standardDeviationLSNR))))
 
 	// Log the original and randomized LSNR values
 	log.WithFields(log.Fields{
