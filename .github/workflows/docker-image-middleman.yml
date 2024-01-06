@@ -30,9 +30,10 @@ jobs:
       - name: Build the Docker image
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && docker buildx build --platform linux/amd64,linux/arm64 -t simeononsecurity/chirpstack-packet-multiplexer:middleman --progress=plain --push .
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: simeononsecurity/chirpstack-packet-multiplexer:middleman
       - name: Login to GitHub Container Registry
