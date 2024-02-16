@@ -343,7 +343,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 
 	// Randomize RSSI value within the specified range
 	minRSSI := -120
-	maxRSSI := -90
+	maxRSSI := -95
 	originalRSSI := rssi
 	rssi = float64(rand.Intn(maxRSSI-minRSSI+1) + minRSSI)
 
@@ -371,7 +371,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	standardDeviationlsnr := 0.5
 	originallsnr := lsnr
 	minSNR := -23
-	maxSNR := 2
+	maxSNR := -1
 	lsnr = float64(rand.Intn(maxSNR-minSNR+1) + minSNR)
 
 	// Log the original and randomized lsnr values
