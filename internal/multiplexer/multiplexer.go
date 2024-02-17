@@ -341,6 +341,30 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		return m.forwardUplinkPacket(gatewayID, up)
 	}	
 
+	// Ignore weak signals, send them anyways
+	if rssi <= -85 {
+		// Log the information about sending packet to gateway
+		log.WithFields(log.Fields{
+			"addr":        up.addr,
+			"packet_type": PushACK,
+			"gateway_id":  gatewayID,
+		}).Info("sending packet to gateway")
+
+		// Create a buffer and prepare the PushACK message
+		b := make([]byte, 4)
+		copy(b[:3], up.data[:3])
+		b[3] = byte(PushACK)
+
+		// Send the PushACK message to the gateway
+		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
+			// Handle error
+			return errors.Wrap(err, "write to udp error")
+		}
+
+		// Forward the uplink packet after sending PushACK
+		return m.forwardUplinkPacket(gatewayID, up)
+	}
+
 	// Randomize RSSI value within the specified range
 	minRSSI := -120
 	maxRSSI := -95
@@ -453,6 +477,13 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket) error 
 					"gateway_id":  gatewayID,
 					"packet_type": pt,
 				}).Info("forwarding packet to backend")
+				rand.Seed(time.Now().UnixNano())
+				// Generate a random number between 1 and 100
+				randomNumber := rand.Intn(100) + 1
+				// If the number is 10 or below, return nil immediately
+				if randomNumber <= 10 {
+					return nil // Do nothing and return nil
+				}
 				if _, err := conn.Write(up.data); err != nil {
 					log.WithError(err).WithFields(log.Fields{
 						"host":       host,
