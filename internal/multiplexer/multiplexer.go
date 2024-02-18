@@ -230,7 +230,8 @@ func (m *Multiplexer) handleUplinkPacket(up udpPacket) error {
 		}
 		return m.handlePullData(gatewayID, up)
 	case TXACK:
-		return m.forwardUplinkPacket(gatewayID, up)
+		isCrankkBeacon := false
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
 	}
 
 	return nil
@@ -261,6 +262,8 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		return errors.New("expected at least 12 bytes of data")
 	}
 
+	isCrankkBeacon := false
+
 	// Decode JSON payload
 	var jsonData map[string]interface{}
 	err := json.Unmarshal(up.data[12:], &jsonData)
@@ -282,7 +285,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
 			return errors.Wrap(err, "write to udp error")
 		}
-		return m.forwardUplinkPacket(gatewayID, up)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
 	}
 
 	// Log the fields
@@ -292,7 +295,6 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	rxpkSlice, ok := jsonData["rxpk"].([]interface{})
 	if !ok || len(rxpkSlice) == 0 {
 		// "rxpk" key is missing or the value is not a slice or the slice is empty
-		// Handle the error accordingly
 		return errors.New("missing or invalid rxpk data")
 	}
 
@@ -316,13 +318,10 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	lsnr, ok := rxpkMap["lsnr"].(float64)
 	if !ok {
 		log.Errorf("Failed to extract lsnr from rxpk map")
-		// Handle the error accordingly
 	}
 
-	size, ok := rxpkMap["size"].(float64)
-	if !ok {
-		log.Errorf("Failed to extract size from rxpk map")
-		// Handle the error accordingly
+	if size, ok := rxpkMap["size"].(float64); ok && size == 21 {
+		isCrankkBeacon = true // Set to true if size is 21
 	}
 
 	// If not a POC Beacon, Do Not Manipulate
@@ -339,7 +338,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
 			return errors.Wrap(err, "write to udp error")
 		}
-		return m.forwardUplinkPacket(gatewayID, up)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
 	}	
 
 	// Ignore weak signals, send them anyways
@@ -363,7 +362,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		}
 
 		// Forward the uplink packet after sending PushACK
-		return m.forwardUplinkPacket(gatewayID, up)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
 	}
 
 	// Randomize RSSI value within the specified range
@@ -440,7 +439,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	log.WithFields(jsonData).Info("manipulated jsonData for PoC Beacon")
 
 	// Forward the modified uplink packet
-	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload})
+	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload}, isCrankkBeacon)
 }
 
 func (m *Multiplexer) handlePullData(gatewayID string, up udpPacket) error {
@@ -461,36 +460,68 @@ func (m *Multiplexer) handlePullData(gatewayID string, up udpPacket) error {
 		return errors.Wrap(err, "write to udp error")
 	}
 
-	return m.forwardUplinkPacket(gatewayID, up)
+	isCrankkBeacon := false
+	return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
 }
 
-func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket) error {
-	for host, gwIDs := range m.backends {
-		for gwID, conn := range gwIDs {
-			if gwID == gatewayID {
-				pt, err := GetPacketType(up.data)
-				if err != nil {
-					return errors.Wrap(err, "get packet-type error")
-				}
-				log.WithFields(log.Fields{
-					"from":        up.addr,
-					"to":          host,
-					"gateway_id":  gatewayID,
-					"packet_type": pt,
-				}).Info("forwarding packet to backend")
-				rand.Seed(time.Now().UnixNano())
-				// Generate a random number between 1 and 100
-				randomNumber := rand.Intn(100) + 1
-				// If the number is 10 or below, return nil immediately
-				if randomNumber <= 10 {
-					return nil // Do nothing and return nil
-				}
+func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCrankkBeacon bool) error {
+	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
+
+	// Check if the packet is a Crankk Beacon
+	if isCrankkBeacon {
+		// Select a random subset of gateways between 3 and 7, inclusive
+		gwIDs := make([]string, 0, len(m.backends))
+		for gwID := range m.backends[gatewayID] {
+			gwIDs = append(gwIDs, gwID)
+		}
+
+		numGateways := rand.Intn(5) + 3 // Randomly choose between 3 to 7 gateways
+		if numGateways > len(gwIDs) {
+			numGateways = len(gwIDs) // Ensure we do not exceed the available gateway count
+		}
+
+		rand.Shuffle(len(gwIDs), func(i, j int) {
+			gwIDs[i], gwIDs[j] = gwIDs[j], gwIDs[i]
+		})
+
+		selectedGWIDs := gwIDs[:numGateways]
+		for _, sgwID := range selectedGWIDs {
+			if conn, ok := m.backends[gatewayID][sgwID]; ok {
 				if _, err := conn.Write(up.data); err != nil {
 					log.WithError(err).WithFields(log.Fields{
-						"host":       host,
-						"gateway_id": gwID,
+						"gateway_id": sgwID,
 					}).Error("udp write error")
 				}
+			}
+		}
+		return nil // Early return after handling Crankk Beacon
+	}
+
+	// Original logic for non-Crankk Beacon packets
+	for host, gwIDs := range m.backends {
+		if conn, ok := gwIDs[gatewayID]; ok {
+			pt, err := GetPacketType(up.data)
+			if err != nil {
+				return errors.Wrap(err, "get packet-type error")
+			}
+			log.WithFields(log.Fields{
+				"from":        up.addr,
+				"to":          host,
+				"gateway_id":  gatewayID,
+				"packet_type": pt,
+			}).Info("forwarding packet to backend")
+
+			// Generate a random number between 1 and 100
+			randomNumber := rand.Intn(100) + 1
+			// If the number is 10 or below, return nil immediately
+			if randomNumber <= 10 {
+				return nil // Do nothing and return nil
+			}
+			if _, err := conn.Write(up.data); err != nil {
+				log.WithError(err).WithFields(log.Fields{
+					"host":       host,
+					"gateway_id": gatewayID,
+				}).Error("udp write error")
 			}
 		}
 	}
