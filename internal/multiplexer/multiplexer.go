@@ -320,6 +320,11 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		log.Errorf("Failed to extract lsnr from rxpk map")
 	}
 
+	size, ok := rxpkMap["size"].(float64)
+	if !ok {
+		log.Errorf("Failed to extract lsnr from rxpk map")
+	}
+
 	if size, ok := rxpkMap["size"].(float64); ok && size == 21 {
 		isCrankkBeacon = true // Set to true if size is 21
 	}
