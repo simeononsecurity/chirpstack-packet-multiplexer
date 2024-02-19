@@ -231,7 +231,8 @@ func (m *Multiplexer) handleUplinkPacket(up udpPacket) error {
 		return m.handlePullData(gatewayID, up)
 	case TXACK:
 		isCrankkBeacon := false
-		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
+		isHeliumBeacon := false
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon, isHeliumBeacon)
 	}
 
 	return nil
@@ -263,6 +264,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	}
 
 	isCrankkBeacon := false
+	isHeliumBeacon := false
 
 	// Decode JSON payload
 	var jsonData map[string]interface{}
@@ -285,7 +287,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
 			return errors.Wrap(err, "write to udp error")
 		}
-		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon, isHeliumBeacon)
 	}
 
 	// Log the fields
@@ -329,6 +331,10 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		isCrankkBeacon = true // Set to true if size is 21
 	}
 
+	if size, ok := rxpkMap["size"].(float64); ok && size == 52 {
+		isHeliumBeacon = true // Set to true if size is 21
+	}
+
 	// If not a POC Beacon, Do Not Manipulate
 	if size != 52 && size != 21 {
 		// respond with PushACK
@@ -343,7 +349,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		if _, err := m.conn.WriteToUDP(b, up.addr); err != nil {
 			return errors.Wrap(err, "write to udp error")
 		}
-		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon, isHeliumBeacon)
 	}	
 
 	// Ignore weak signals, send them anyways
@@ -367,12 +373,12 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 		}
 
 		// Forward the uplink packet after sending PushACK
-		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
+		return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon, isHeliumBeacon)
 	}
 
 	// Randomize RSSI value within the specified range
 	minRSSI := -120
-	maxRSSI := -95
+	maxRSSI := -86
 	originalRSSI := rssi
 	rssi = float64(rand.Intn(maxRSSI-minRSSI+1) + minRSSI)
 
@@ -444,7 +450,7 @@ func (m *Multiplexer) handlePushData(gatewayID string, up udpPacket) error {
 	log.WithFields(jsonData).Info("manipulated jsonData for PoC Beacon")
 
 	// Forward the modified uplink packet
-	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload}, isCrankkBeacon)
+	return m.forwardUplinkPacket(gatewayID, udpPacket{addr: up.addr, data: modifiedPayload}, isCrankkBeacon, isHeliumBeacon)
 }
 
 func (m *Multiplexer) handlePullData(gatewayID string, up udpPacket) error {
@@ -466,10 +472,11 @@ func (m *Multiplexer) handlePullData(gatewayID string, up udpPacket) error {
 	}
 
 	isCrankkBeacon := false
-	return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon)
+	isHeliumBeacon := false
+	return m.forwardUplinkPacket(gatewayID, up, isCrankkBeacon, isHeliumBeacon)
 }
 
-func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCrankkBeacon bool) error {
+func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCrankkBeacon bool, isHeliumBeacon bool) error {
 	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
 
 	// Check if the packet is a Crankk Beacon
@@ -509,24 +516,51 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 		return nil // Early return after handling Crankk Beacon
 	}
 
-	// Original logic for non-Crankk Beacon packets
-	for host, gwIDs := range m.backends {
-		if conn, ok := gwIDs[gatewayID]; ok {
-			pt, err := GetPacketType(up.data)
-			if err != nil {
-				return errors.Wrap(err, "get packet-type error")
-			}
-			// Generate a random number between 1 and 100
-			randomNumber := rand.Intn(100) + 1
-			// If the number is 10 or below, return nil immediately
-			if randomNumber <= 10 {
+	// Check if the packet is a Helium Beacon
+	if isHeliumBeacon {
+		for host, gwIDs := range m.backends {
+			if conn, ok := gwIDs[gatewayID]; ok {
+				pt, err := GetPacketType(up.data)
+				if err != nil {
+					return errors.Wrap(err, "get packet-type error")
+				}
+				// Generate a random number between 1 and 100
+				randomNumber := rand.Intn(100) + 1
+				// If the number is 10 or below, return nil immediately
+				if randomNumber <= 10 {
+					log.WithFields(log.Fields{
+						"from":        up.addr,
+						"to":          host,
+						"gateway_id":  gatewayID,
+						"packet_type": pt,
+					}).Info("DROPPING PACKET FOR RANDOMNESS")
+					return nil // Do nothing and return nil
+				}
 				log.WithFields(log.Fields{
 					"from":        up.addr,
 					"to":          host,
 					"gateway_id":  gatewayID,
 					"packet_type": pt,
-				}).Info("DROPPING PACKET FOR RANDOMNESS")
-				return nil // Do nothing and return nil
+				}).Info("forwarding packet to backend")
+	
+				if _, err := conn.Write(up.data); err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"host":       host,
+						"gateway_id": gatewayID,
+					}).Error("udp write error")
+				}
+			}
+		}
+	
+		return nil // Early return after handling Helium Beacon
+	}
+
+	// Logic for non-Crankk and non-Helium Beacon packets
+	for host, gwIDs := range m.backends {
+		if conn, ok := gwIDs[gatewayID]; ok {
+			pt, err := GetPacketType(up.data)
+			if err != nil {
+				return errors.Wrap(err, "get packet-type error")
 			}
 			log.WithFields(log.Fields{
 				"from":        up.addr,
