@@ -536,12 +536,11 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 					}).Info("DROPPING PACKET FOR RANDOMNESS")
 					return nil // Do nothing and return nil
 				}
-				log.WithFields(log.Fields{
-					"from":        up.addr,
-					"to":          host,
-					"gateway_id":  gatewayID,
-					"packet_type": pt,
-				}).Info("forwarding packet to backend")
+                log.WithFields(log.Fields{
+					"host":       host,
+					"gateway_id": gatewayID,
+                    "action": "forwarding Helium Beacon packet",
+                }).Info("Forwarding Helium Beacon packet to selected gateways")
 	
 				if _, err := conn.Write(up.data); err != nil {
 					log.WithError(err).WithFields(log.Fields{
