@@ -498,7 +498,7 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 			maxSelection = len(gwIDs) // Use the actual size if it's less than 7
 		}
 		// Adjust random selection to ensure it doesn't exceed the available count of gwIDs
-		numGateways = rand.Intn(maxSelection - 4) + 5 // This ensures a selection between 5 and maxSelection
+		numGateways = rand.Intn(maxSelection - 4) + 3 // This ensures a selection between 3 and maxSelection
 	}
 
 		rand.Shuffle(len(gwIDs), func(i, j int) {
