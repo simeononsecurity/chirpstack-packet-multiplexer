@@ -488,17 +488,24 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 		rand.Shuffle(len(gwIDs), func(i, j int) {
 			gwIDs[i], gwIDs[j] = gwIDs[j], gwIDs[i]
 		})
+		
+        selectedGWIDs := gwIDs[:numGateways]
+        for _, sgwID := range selectedGWIDs {
+            if conn, ok := m.backends[gatewayID][sgwID]; ok {
+                log.WithFields(log.Fields{
+                    "gateway_id": sgwID,
+                    "target_gateway_ids": selectedGWIDs,
+                    "action": "forwarding Crankk Beacon packet",
+                }).Info("Forwarding Crankk Beacon packet to selected gateways")
 
-		selectedGWIDs := gwIDs[:numGateways]
-		for _, sgwID := range selectedGWIDs {
-			if conn, ok := m.backends[gatewayID][sgwID]; ok {
-				if _, err := conn.Write(up.data); err != nil {
-					log.WithError(err).WithFields(log.Fields{
-						"gateway_id": sgwID,
-					}).Error("udp write error")
-				}
-			}
-		}
+                if _, err := conn.Write(up.data); err != nil {
+                    log.WithError(err).WithFields(log.Fields{
+                        "gateway_id": sgwID,
+                    }).Error("udp write error")
+                }
+            }
+        }
+		
 		return nil // Early return after handling Crankk Beacon
 	}
 
@@ -509,6 +516,18 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 			if err != nil {
 				return errors.Wrap(err, "get packet-type error")
 			}
+			// Generate a random number between 1 and 100
+			randomNumber := rand.Intn(100) + 1
+			// If the number is 10 or below, return nil immediately
+			if randomNumber <= 10 {
+				log.WithFields(log.Fields{
+					"from":        up.addr,
+					"to":          host,
+					"gateway_id":  gatewayID,
+					"packet_type": pt,
+				}).Info("DROPPING PACKET FOR RANDOMNESS")
+				return nil // Do nothing and return nil
+			}
 			log.WithFields(log.Fields{
 				"from":        up.addr,
 				"to":          host,
@@ -516,12 +535,6 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 				"packet_type": pt,
 			}).Info("forwarding packet to backend")
 
-			// Generate a random number between 1 and 100
-			randomNumber := rand.Intn(100) + 1
-			// If the number is 10 or below, return nil immediately
-			if randomNumber <= 10 {
-				return nil // Do nothing and return nil
-			}
 			if _, err := conn.Write(up.data); err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"host":       host,
