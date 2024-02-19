@@ -487,16 +487,22 @@ func (m *Multiplexer) forwardUplinkPacket(gatewayID string, up udpPacket, isCran
 			gwIDs = append(gwIDs, gwID)
 		}
 
-		if len(gwIDs) <= 3 {
-			// If there are less than 3 gateways, use the actual number of available gateways
-			numGateways = len(gwIDs)
-		} else {
-			// Otherwise, randomly choose between 3 to 7 gateways
-			numGateways = rand.Intn(5) + 3 // Generates a number between 3 and 7 inclusive
-			if numGateways > len(gwIDs) {
-				// Ensure we do not exceed the available gateway count
-				numGateways = len(gwIDs)
+		// Initialize numGateways to the total count of gwIDs
+		numGateways := len(gwIDs)
+
+		// If there are 5 or more devices, attempt to randomly select up to 7 devices
+		if len(gwIDs) >= 5 {
+			// Ensure the selection does not exceed the available count of gwIDs
+			maxSelection := min(len(gwIDs), 7) // Choose the smaller of 7 or the number of gwIDs
+			numGateways = rand.Intn(maxSelection - 4) + 5 // Adjusted to ensure a selection between 5 and maxSelection
+		}
+
+		// Helper function to find the minimum of two integers
+		func min(a, b int) int {
+			if a < b {
+				return a
 			}
+			return b
 		}
 
 		rand.Shuffle(len(gwIDs), func(i, j int) {
