@@ -82,6 +82,3 @@ jobs:
             simeononsecurity/chirpstack-packet-multiplexer:latest
             ghcr.io/simeononsecurity/chirpstack-packet-multiplexer:latest
           github-token: "${{ secrets.PAT_TOKEN }}"
-
-      - name: Image digest
-        run: echo "Docker image digest: ${{ steps.docker_build.outputs.digest }}"
