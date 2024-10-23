@@ -59,18 +59,9 @@ jobs:
     -
       name: Run tests
       run: nix-shell --command "make test"
-        
     -
-      name: Cargo cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-dist-${{ hashFiles('**/Cargo.lock') }}
+      name: Run tests
+      run: nix-shell --command "make build"   
     -
       name: Build distributables
       run: nix-shell --command "make dist"
