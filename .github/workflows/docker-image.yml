@@ -56,9 +56,6 @@ jobs:
       - name: Run tests
         run: nix-shell --command "make test"
 
-      - name: Build project
-        run: nix-shell --command "make build"
-
       - name: Build distributables
         run: nix-shell --command "make dist"
 
